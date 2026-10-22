@@ -1,0 +1,26 @@
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+      - name: Testes de corretude
+        run: python -m unittest discover -s tests -v
+      - name: Benchmark rápido (fumaça)
+        run: |
+          cp -r resultados /tmp/resultados-originais
+          python src/benchmark.py --rapido
+          rm -rf resultados && mv /tmp/resultados-originais resultados

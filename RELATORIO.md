@@ -59,7 +59,7 @@ A única diferença é a primeira linha: quando o pedaço tem **menos que `corte
 
 ```mermaid
 flowchart TD
-    A["quicksort_hibrido(v, corte)"] --> B{"len(v) &lt; corte?"}
+    A["quicksort_hibrido(v, corte)"] --> B{"len(v) menor que corte?"}
     B -- sim --> C["insercao(v)<br/>O(k²), mas constante baixíssima"]
     B -- não --> D{"len(v) ≤ 1?"}
     D -- sim --> E["devolve v"]
@@ -222,6 +222,12 @@ O pequeno excesso que aparece de forma consistente tem explicação: o híbrido 
 ### 8.1 O ponto ótimo depende da linguagem
 
 Em Python, a partição é feita com **compreensões de lista**, que rodam um laço bem enxuto no interpretador. Já a inserção usa um `while` com índices, atribuições e comparações explícitas — várias instruções de bytecode por passo. Ou seja, em Python cada passo da inserção é *relativamente* mais caro do que seria em C ou Java. Isso empurra o ponto ótimo para valores menores e faz o tempo começar a subir antes de a contagem de comparações sugerir. Em outra linguagem, o mesmo experimento poderia dar um ótimo diferente.
+
+### 8.1.1 Teste em JavaScript: o ótimo muda de lugar
+
+Para confirmar a peculiaridade 8.1, a [página interativa](https://arthur-gmb.github.io/quicksort-hibrido/) roda o mesmo experimento em JavaScript (mesmo algoritmo, 20 000 elementos, cortes de 1 a 2 000). Lá o melhor corte ficou **na casa de 100 a 500**, e o ganho sobre o puro passou de 60 %. O motor JavaScript compila o laço da inserção para código de máquina, então cada comparação dela fica muito barata. Já a partição continua criando três vetores novos em cada chamada, o que é caro em qualquer linguagem. Resultado: vale a pena deixar a inserção trabalhar em pedaços bem maiores. A curva em U continua lá, só que deslocada para a direita.
+
+Os números exatos variam conforme o navegador e o computador; o ponto é que **o corte ótimo depende do custo relativo das duas operações na linguagem usada**, e não só da análise assintótica.
 
 ### 8.2 A partição em três listas percorre o pedaço três vezes
 

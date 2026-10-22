@@ -7,15 +7,24 @@
 👥 Arthur Gabriel Monteiro Barreiras · Cauã Evaristo da Cruz
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![Testes](https://github.com/Arthur-Gmb/quicksort-hibrido/actions/workflows/testes.yml/badge.svg)
+[![Testes](https://github.com/Arthur-Gmb/quicksort-hibrido/actions/workflows/testes.yml/badge.svg)](https://github.com/Arthur-Gmb/quicksort-hibrido/actions/workflows/testes.yml)
 ![Melhor corte](https://img.shields.io/badge/melhor%20corte-16-2a78d6)
+[![Página interativa](https://img.shields.io/badge/página-interativa-ee9b00)](https://arthur-gmb.github.io/quicksort-hibrido/)
 ![Ganho](https://img.shields.io/badge/ganho%20sobre%20o%20puro-−20,7%25%20de%20tempo-0ca30c)
+
+### [▶ Abrir a página interativa](https://arthur-gmb.github.io/quicksort-hibrido/)
 
 [Relatório completo](RELATORIO.md) · [Código](src/ordenacao.py) · [Benchmark](src/benchmark.py) · [Dados brutos](resultados/)
 
 </div>
 
 ---
+
+<p align="center">
+  <a href="https://arthur-gmb.github.io/quicksort-hibrido/"><img src="graficos/animacao.gif" alt="Animação do quicksort híbrido: o quicksort sorteia pivôs e divide a lista; pedaços com menos de 8 elementos são terminados pela inserção." width="100%"></a>
+</p>
+
+<p align="center"><sub>Quicksort divide (azul e rosa), a inserção termina os pedaços pequenos (laranja). Na <a href="https://arthur-gmb.github.io/quicksort-hibrido/">página interativa</a> você escolhe o corte e mede no seu navegador.</sub></p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="graficos/tempo_por_corte_escuro.png">
@@ -41,7 +50,7 @@ O quicksort é O(n log n), mas cada chamada tem um custo fixo alto (sortear piv�
 
 ```mermaid
 flowchart LR
-    A["lista"] --> B{"tamanho &lt; corte?"}
+    A["lista"] --> B{"tamanho menor que o corte?"}
     B -- "sim" --> C["🐇 inserção"]
     B -- "não" --> D["🎲 pivô aleatório"]
     D --> E["menores"]
@@ -59,7 +68,7 @@ flowchart LR
 - [x] **4.** Comparação com o quicksort puro → [tabela](RELATORIO.md#3-tabela-de-resultados)
 - [x] **5.** Gráfico do tempo em função do corte → [gráficos](RELATORIO.md#4-gráfico-tempo--corte)
 
-**Extras:** varredura de 1 a 2 000, contagem de comparações por fase, gráficos com tema claro/escuro, testes automatizados e CI no GitHub Actions.
+**Extras:** [página interativa](https://arthur-gmb.github.io/quicksort-hibrido/) com animação e benchmark no navegador, varredura de 1 a 2 000, contagem de comparações por fase, gráficos com tema claro/escuro, testes automatizados e CI no GitHub Actions.
 
 ## 📊 Mais gráficos
 
@@ -109,11 +118,13 @@ quicksort-hibrido/
 ├── src/
 │   ├── ordenacao.py      # inserção, quicksort puro e híbrido
 │   ├── benchmark.py      # medição de tempo + contagem de operações
-│   └── graficos.py       # gráficos (versões clara e escura)
+│   ├── graficos.py       # gráficos (versões clara e escura)
+│   └── gif.py            # animação do README
 ├── tests/
 │   └── test_ordenacao.py # corretude para todos os cortes e casos-limite
 ├── resultados/           # tempos brutos (CSV), operações (CSV) e resumo (JSON)
-├── graficos/             # PNGs usados no README e no relatório
+├── graficos/             # PNGs e GIF usados no README e no relatório
+├── docs/index.html       # página interativa (GitHub Pages)
 ├── RELATORIO.md          # análise completa
 └── .github/workflows/    # CI: roda os testes a cada push
 ```
@@ -125,6 +136,7 @@ quicksort-hibrido/
 3. **Em Python o ótimo tende a ser menor** que em C/Java, porque o `while` da inserção é interpretado passo a passo, enquanto a partição usa compreensões de lista enxutas.
 4. **A partição em três listas faz 3·n comparações por nível** — é cara, e por isso cortar os níveis de baixo rende tanto.
 5. **Corte grande faz a inserção dominar**: perto de 200 ela já faz mais comparações que toda a partição.
+6. **Em JavaScript o ponto de troca é outro.** Na página interativa, o navegador compila a inserção para código de máquina e o melhor corte cai na casa das centenas. O ótimo depende da linguagem, não só do algoritmo.
 
 Detalhes, tabelas e explicações no **[RELATORIO.md](RELATORIO.md)**.
 
