@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quicksort Híbrido</title>
+<meta name="description" content="Veja o quicksort entregar os pedaços pequenos para a inserção e meça, no seu navegador, onde fica o melhor ponto de troca.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --papel: #e8edf3;
+  --papel-2: #f5f7fa;
+  --tinta: #13203a;
+  --tinta-2: #4a5874;
+  --tinta-3: #8391a8;
+  --linha: #cdd5e1;
+  --quick: #3156d3;
+  --quick-claro: #9fb2ef;
+  --insercao: #ee9b00;
+  --pivo: #e0335a;
+  --pronto: #1b7f6b;
+  --fora: #c3ccd9;
+  --foco: #3156d3;
+  --raio: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #0e1626; --papel-2: #152036; --tinta: #e7edf6; --tinta-2: #a9b6cc; --tinta-3: #6f7f9a;
+    --linha: #26324a; --quick: #5b7ff0; --quick-claro: #4c64b4; --insercao: #f2a91a; --pivo: #ff5a7e;
+    --pronto: #2fb595; --fora: #27344d; --foco: #8aa4ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #0e1626; --papel-2: #152036; --tinta: #e7edf6; --tinta-2: #a9b6cc; --tinta-3: #6f7f9a;
+  --linha: #26324a; --quick: #5b7ff0; --quick-claro: #4c64b4; --insercao: #f2a91a; --pivo: #ff5a7e;
+  --pronto: #2fb595; --fora: #27344d; --foco: #8aa4ff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font: 400 17px/1.6 "Instrument Sans", system-ui, sans-serif;
+}
+a { color: var(--quick); text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; border-radius: 6px; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- topo ---------- */
+.topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; gap: 16px; }
+.marca { font: 700 17px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.marca-icone { display: inline-flex; gap: 2px; align-items: flex-end; height: 18px; }
+.marca-icone i { width: 4px; border-radius: 2px; background: var(--quick); }
+.marca-icone i:nth-child(1) { height: 7px; } .marca-icone i:nth-child(2) { height: 11px; }
+.marca-icone i:nth-child(3) { height: 14px; background: var(--insercao); } .marca-icone i:nth-child(4) { height: 18px; background: var(--insercao); }
+.topo nav { display: flex; gap: 18px; font-size: 15px; flex-wrap: wrap; }
+.topo nav a { color: var(--tinta-2); text-decoration: none; }
+.topo nav a:hover { color: var(--tinta); text-decoration: underline; }
+
+/* ---------- hero ---------- */
+.hero { padding: 16px 0 56px; }
+.hero h1 {
+  font: 800 clamp(38px, 6vw, 80px)/0.95 "Bricolage Grotesque", sans-serif;
+  font-variation-settings: "wdth" 78;
+  letter-spacing: -0.035em;
+  margin: 0 0 20px;
+}
+.hero h1 .l1 { display: block; color: var(--quick); }
+.hero h1 .l2 { display: block; color: var(--insercao); }
+.hero .lead { font-size: 19px; color: var(--tinta-2); max-width: 62ch; margin: 0 0 28px; }
+
+.palco {
+  background: var(--papel-2);
+  border: 1px solid var(--linha);
+  border-radius: 22px;
+  padding: 22px 22px 18px;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 26px;
+}
+.barras-area { min-width: 0; }
+.barras {
+  position: relative;
+  height: 340px;
+  border-bottom: 2px solid var(--linha);
+}
+.barra {
+  position: absolute; bottom: 0; left: 0;
+  border-radius: 4px 4px 0 0;
+  background: var(--fora);
+  transition: transform var(--dur, 220ms) cubic-bezier(.3,.7,.2,1), background-color 160ms;
+  will-change: transform;
+}
+.barra.ativa { background: var(--tinta-3); }
+.barra.menor { background: var(--quick); }
+.barra.maior { background: var(--quick-claro); }
+.barra.pivo { background: var(--pivo); }
+.barra.ins { background: var(--insercao); opacity: .55; }
+.barra.chave { background: var(--insercao); opacity: 1; }
+.barra.comp { background: var(--insercao); opacity: 1; box-shadow: 0 0 0 2px var(--papel-2), 0 0 0 4px var(--insercao); }
+.barra.pronto { background: var(--pronto); }
+
+.faixa { position: relative; height: 26px; margin-top: 8px; }
+.faixa span {
+  position: absolute; top: 0; height: 8px; border-radius: 4px;
+  transition: left var(--dur,220ms), width var(--dur,220ms), background-color 160ms;
+}
+.faixa .quick { background: var(--quick); }
+.faixa .ins { background: var(--insercao); }
+.narracao { min-height: 3.2em; margin: 2px 0 0; color: var(--tinta-2); font-size: 15.5px; }
+.narracao b { color: var(--tinta); font-weight: 600; }
+
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 14px; color: var(--tinta-2); }
+.legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.legenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+.controles { display: flex; flex-direction: column; gap: 18px; }
+.campo label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.campo label output { font: 600 22px/1 "JetBrains Mono", monospace; color: var(--insercao); }
+.campo.vel label output { font: 500 14px/1 "Instrument Sans", sans-serif; color: var(--tinta-2); }
+.campo small { display: block; color: var(--tinta-3); font-size: 13px; line-height: 1.4; margin-top: 4px; }
+input[type=range] { width: 100%; accent-color: var(--insercao); height: 28px; }
+.campo.vel input[type=range] { accent-color: var(--tinta-2); }
+
+.botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+button {
+  font: 600 15px/1 "Instrument Sans", sans-serif;
+  border: 1px solid var(--linha); background: var(--papel); color: var(--tinta);
+  padding: 12px 14px; border-radius: 12px; cursor: pointer;
+}
+button:hover { border-color: var(--tinta-3); }
+button.primario { grid-column: 1 / -1; background: var(--tinta); color: var(--papel-2); border-color: var(--tinta); padding: 15px; font-size: 16px; }
+button.primario:hover { opacity: .9; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+.contadores { display: grid; grid-template-columns: 1fr; gap: 8px; border-top: 1px solid var(--linha); padding-top: 16px; }
+.contador { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--tinta-2); }
+.contador b { font: 600 18px/1 "JetBrains Mono", monospace; color: var(--tinta); }
+.contador.c-quick b { color: var(--quick); }
+.contador.c-ins b { color: var(--insercao); }
+
+/* ---------- seções ---------- */
+section.bloco { padding: 64px 0; border-top: 1px solid var(--linha); }
+.bloco-cab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: end; margin-bottom: 30px; }
+h2 {
+  font: 750 clamp(30px, 4.2vw, 50px)/1.02 "Bricolage Grotesque", sans-serif;
+  font-variation-settings: "wdth" 85;
+  letter-spacing: -0.025em; margin: 0;
+}
+.bloco-cab p { margin: 0; color: var(--tinta-2); max-width: 54ch; }
+
+.lab {
+  background: var(--papel-2); border: 1px solid var(--linha); border-radius: 22px;
+  padding: 24px; display: grid; grid-template-columns: 260px 1fr; gap: 28px;
+}
+.lab-lado { display: flex; flex-direction: column; gap: 16px; }
+.lab-lado .estado { font-size: 15px; color: var(--tinta-2); min-height: 4.8em; }
+.lab-lado .estado b { color: var(--tinta); }
+.progresso { height: 6px; background: var(--linha); border-radius: 3px; overflow: hidden; }
+.progresso i { display: block; height: 100%; width: 0; background: var(--insercao); transition: width 200ms; }
+.seg { display: flex; border: 1px solid var(--linha); border-radius: 12px; overflow: hidden; }
+.seg button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 6px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--papel-2); }
+.seg-rot { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+
+svg.grafico { width: 100%; height: auto; display: block; overflow: visible; }
+svg.grafico text { font-family: "Instrument Sans", sans-serif; }
+.g-eixo { stroke: var(--linha); }
+.g-grade { stroke: var(--linha); stroke-dasharray: 2 4; }
+.g-tick { fill: var(--tinta-3); font-size: 13px; }
+.g-titulo-eixo { fill: var(--tinta-2); font-size: 13px; }
+.g-puro { stroke: var(--tinta-3); stroke-dasharray: 6 5; stroke-width: 1.6; }
+.g-puro-rot { fill: var(--tinta-2); font-size: 13px; }
+.g-linha { fill: none; stroke: var(--quick); stroke-width: 2.5; stroke-linejoin: round; }
+.g-ponto { fill: var(--quick); stroke: var(--papel-2); stroke-width: 2.5; }
+.g-melhor { fill: var(--insercao); stroke: var(--papel-2); stroke-width: 3; }
+.g-melhor-rot { fill: var(--tinta); font-weight: 600; font-size: 14px; }
+.g-hit { fill: transparent; cursor: default; }
+.dica {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--tinta); color: var(--papel-2);
+  padding: 8px 11px; border-radius: 9px; font-size: 13.5px; line-height: 1.35; opacity: 0; transition: opacity 120ms;
+  white-space: nowrap;
+}
+
+/* resultados python */
+.achados { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 28px; }
+.achado { padding: 20px 22px; border-radius: 18px; background: var(--papel-2); border: 1px solid var(--linha); }
+.achado .num { font: 800 46px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -0.03em; font-variation-settings: "wdth" 80; }
+.achado h3 { margin: 10px 0 6px; font: 650 18px/1.3 "Instrument Sans", sans-serif; }
+.achado p { margin: 0; color: var(--tinta-2); font-size: 15.5px; }
+.achado.a1 .num { color: var(--quick); }
+.achado.a2 .num { color: var(--pivo); }
+.achado.a3 .num { color: var(--pronto); }
+
+.tabela-wrap { overflow-x: auto; margin-top: 26px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 620px; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--linha); }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--tinta-2); font-size: 14px; }
+td { font-variant-numeric: tabular-nums; }
+tr.destaque td { background: color-mix(in srgb, var(--insercao) 14%, transparent); font-weight: 600; }
+.pos { color: var(--pronto); } .neg { color: var(--pivo); }
+
+.como { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; }
+.como p { margin: 0 0 14px; color: var(--tinta-2); max-width: 60ch; }
+pre {
+  margin: 0; background: #13203a; color: #e7edf6; border: 1px solid var(--linha); border-radius: 16px; padding: 20px 22px;
+  font: 400 14px/1.6 "JetBrains Mono", monospace; overflow-x: auto;
+}
+pre .k { color: #8fb0ff; } pre .c { color: #7d8aa3; } pre .h { color: #ffc14d; }
+
+footer { border-top: 1px solid var(--linha); padding: 32px 0 48px; color: var(--tinta-2); font-size: 15px; }
+footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+footer b { color: var(--tinta); }
+
+@media (max-width: 900px) {
+  .palco, .lab { grid-template-columns: 1fr; }
+  .bloco-cab, .como { grid-template-columns: 1fr; gap: 14px; }
+  .achados { grid-template-columns: 1fr; }
+  .barras { height: 240px; }
+  .topo nav { display: none; }
+  .hero { padding-top: 22px; }
+}
+@media (max-width: 520px) {
+  .wrap { padding: 0 16px; }
+  .palco, .lab { padding: 16px; border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra, .faixa span, .progresso i { transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="wrap topo">
+  <div class="marca"><span class="marca-icone" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Quicksort Híbrido</div>
+  <nav aria-label="Seções">
+    <a href="#laboratorio">Medir no navegador</a>
+    <a href="#resultados">Resultados</a>
+    <a href="#codigo">Código</a>
+    <a href="https://github.com/Arthur-Gmb/quicksort-hibrido">Repositório</a>
+  </nav>
+</header>
+
+<main>
+<section class="wrap hero" aria-labelledby="titulo">
+  <h1 id="titulo"><span class="l1">Quicksort para o grande.</span><span class="l2">Inserção para o pequeno.</span></h1>
+  <p class="lead">O quicksort divide a lista até os pedaços ficarem menores que o <b>corte</b>. Daí em diante, quem termina o serviço é a ordenação por inserção. Escolha o corte e veja a troca acontecer.</p>
+
+  <div class="palco">
+    <div class="barras-area">
+      <div class="barras" id="barras" role="img" aria-label="Animação das barras sendo ordenadas"></div>
+      <div class="faixa" aria-hidden="true"><span id="faixa"></span></div>
+      <p class="narracao" id="narracao" aria-live="polite">Aperte <b>Ordenar</b> para começar.</p>
+      <div class="legenda" aria-label="Legenda das cores">
+        <span><i style="background:var(--pivo)"></i>pivô</span>
+        <span><i style="background:var(--quick)"></i>menores que o pivô</span>
+        <span><i style="background:var(--quick-claro)"></i>maiores que o pivô</span>
+        <span><i style="background:var(--insercao)"></i>inserção</span>
+        <span><i style="background:var(--pronto)"></i>no lugar certo</span>
+      </div>
+    </div>
+
+    <div class="controles">
+      <div class="campo">
+        <label for="corte">Corte <output id="corte-val" for="corte">8</output></label>
+        <input type="range" id="corte" min="1" max="64" value="8">
+        <small id="corte-dica">Pedaços com menos de 8 elementos vão para a inserção.</small>
+      </div>
+      <div class="campo vel">
+        <label for="vel">Velocidade <output id="vel-val" for="vel">normal</output></label>
+        <input type="range" id="vel" min="0" max="4" value="2">
+      </div>
+      <div class="botoes">
+        <button class="primario" id="btn-play">Ordenar</button>
+        <button id="btn-passo">Um passo</button>
+        <button id="btn-embaralhar">Embaralhar</button>
+      </div>
+      <div class="contadores">
+        <div class="contador"><span>chamadas recursivas</span><b id="k-chamadas">0</b></div>
+        <div class="contador c-quick"><span>comparações na partição</span><b id="k-part">0</b></div>
+        <div class="contador c-ins"><span>comparações na inserção</span><b id="k-ins">0</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="laboratorio" aria-labelledby="t-lab">
+  <div class="wrap">
+    <div class="bloco-cab">
+      <h2 id="t-lab">Ache o ponto de troca no seu computador</h2>
+      <p>O mesmo experimento, agora em JavaScript: 20 000 números aleatórios, cada corte medido várias vezes com a mesma lista e os mesmos pivôs. Fomos até o corte 2 000 porque aqui o resultado surpreende: o JavaScript compila a inserção para código de máquina, e o ponto de troca fica bem mais alto que no Python.</p>
+    </div>
+    <div class="lab">
+      <div class="lab-lado">
+        <div>
+          <div class="seg-rot" id="rot-rodadas">Rodadas por corte</div>
+          <div class="seg" role="group" aria-labelledby="rot-rodadas">
+            <button data-r="3" aria-pressed="false">3</button>
+            <button data-r="7" aria-pressed="true">7</button>
+            <button data-r="15" aria-pressed="false">15</button>
+          </div>
+        </div>
+        <button class="primario" id="btn-medir">Medir agora</button>
+        <div class="progresso" aria-hidden="true"><i id="prog"></i></div>
+        <div class="estado" id="estado" aria-live="polite">Leva poucos segundos. A página continua respondendo durante a medição.</div>
+      </div>
+      <div>
+        <svg class="grafico" id="g-lab" viewBox="0 0 760 380" role="img" aria-label="Gráfico do tempo medido no navegador em função do corte"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="resultados" aria-labelledby="t-res">
+  <div class="wrap">
+    <div class="bloco-cab">
+      <h2 id="t-res">O que a medição em Python mostrou</h2>
+      <p>Resultado oficial da atividade: 20 000 inteiros aleatórios, mediana de 21 rodadas, CPython 3.13. Passe o mouse nos pontos para ver os valores.</p>
+    </div>
+    <svg class="grafico" id="g-py" viewBox="0 0 1100 400" role="img" aria-label="Gráfico do tempo em Python em função do corte: mínimo de 35,05 ms no corte 16 contra 44,19 ms do quicksort puro"></svg>
+
+    <div class="achados">
+      <div class="achado a1">
+        <div class="num">−20,7%</div>
+        <h3>Corte 16 foi o melhor</h3>
+        <p>35,05 ms contra 44,19 ms do quicksort puro. Todos os cortes entre 10 e 50 ganharam do puro.</p>
+      </div>
+      <div class="achado a2">
+        <div class="num">12×</div>
+        <h3>Corte grande demais estraga tudo</h3>
+        <p>Com corte 2 000 a inserção, que é O(k²), recebe pedaços enormes e o tempo vai a 537 ms.</p>
+      </div>
+      <div class="achado a3">
+        <div class="num">0</div>
+        <h3>Corte 1 é o quicksort puro</h3>
+        <p>Só a lista vazia vai para a inserção. Mesmas 26 569 chamadas e zero comparações de inserção.</p>
+      </div>
+    </div>
+
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Configuração</th><th>Mediana (ms)</th><th>Economia vs. puro</th><th>Aceleração</th></tr></thead>
+        <tbody id="tabela"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="codigo" aria-labelledby="t-cod">
+  <div class="wrap como">
+    <div>
+      <h2 id="t-cod" style="margin-bottom:20px">Uma linha faz a diferença</h2>
+      <p>O quicksort puro e o híbrido são iguais, exceto pela primeira condição. Quando o pedaço tem menos que <code>corte</code> elementos, ele vai para a inserção e a recursão para ali.</p>
+      <p>Com corte 1, essa condição só vale para a lista vazia. Por isso corte 1 se comporta exatamente como o puro.</p>
+      <p><a href="https://github.com/Arthur-Gmb/quicksort-hibrido/blob/main/RELATORIO.md">Ler o relatório completo</a></p>
+    </div>
+<pre><code><span class="k">def</span> quicksort_hibrido(v, corte):
+    <span class="h">if len(v) &lt; corte:</span>
+        <span class="h">return insercao(v)</span>   <span class="c"># pedaço pequeno</span>
+    <span class="k">if</span> len(v) &lt;= 1:
+        <span class="k">return</span> list(v)
+    pivo = random.choice(v)
+    menores = [x <span class="k">for</span> x <span class="k">in</span> v <span class="k">if</span> x &lt; pivo]
+    iguais  = [x <span class="k">for</span> x <span class="k">in</span> v <span class="k">if</span> x == pivo]
+    maiores = [x <span class="k">for</span> x <span class="k">in</span> v <span class="k">if</span> x &gt; pivo]
+    <span class="k">return</span> (quicksort_hibrido(menores, corte)
+            + iguais
+            + quicksort_hibrido(maiores, corte))</code></pre>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Feito por <b>Arthur Gabriel Monteiro Barreiras</b> e <b>Cauã Evaristo da Cruz</b>, Ciência da Computação.</span>
+    <a href="https://github.com/Arthur-Gmb/quicksort-hibrido">Ver o código no GitHub</a>
+  </div>
+</footer>
+
+<div class="dica" id="dica" role="tooltip"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- utilitários ----------
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const fmt = (n, d = 0) => n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const reduzMovimento = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // =====================================================================
+  // 1) ANIMAÇÃO
+  // =====================================================================
+  const N = 64;
+  const elBarras = document.getElementById("barras");
+  const elFaixa = document.getElementById("faixa");
+  const elNarr = document.getElementById("narracao");
+  const elCorte = document.getElementById("corte");
+  const elCorteVal = document.getElementById("corte-val");
+  const elCorteDica = document.getElementById("corte-dica");
+  const elVel = document.getElementById("vel");
+  const elVelVal = document.getElementById("vel-val");
+  const btnPlay = document.getElementById("btn-play");
+  const btnPasso = document.getElementById("btn-passo");
+  const btnEmb = document.getElementById("btn-embaralhar");
+  const kCham = document.getElementById("k-chamadas");
+  const kPart = document.getElementById("k-part");
+  const kIns = document.getElementById("k-ins");
+
+  const VELOCIDADES = [
+    { nome: "bem lenta", ms: 520 },
+    { nome: "lenta", ms: 230 },
+    { nome: "normal", ms: 95 },
+    { nome: "rápida", ms: 35 },
+    { nome: "turbo", ms: 8 },
+  ];
+
+  let valores = [];      // valores por id
+  let elems = [];        // div por id
+  let eventos = [];
+  let passo = 0;
+  let tocando = false;
+  let timer = null;
+  let semente = 7;
+
+  function novaLista() {
+    const rng = mulberry32(semente++);
+    const vals = Array.from({ length: N }, (_, i) => 6 + Math.round((i / (N - 1)) * 94));
+    for (let i = vals.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [vals[i], vals[j]] = [vals[j], vals[i]];
+    }
+    // alguns repetidos para mostrar a lista "iguais"
+    vals[5] = vals[20]; vals[40] = vals[20];
+    valores = vals;
+    elBarras.innerHTML = "";
+    elems = vals.map((v, id) => {
+      const d = document.createElement("div");
+      d.className = "barra";
+      d.style.height = v + "%";
+      elBarras.appendChild(d);
+      return d;
+    });
+    posicionar(vals.map((_, i) => i), true);
+  }
+
+  function larguras() {
+    const W = elBarras.clientWidth;
+    const passoX = W / N;
+    return { passoX, w: Math.max(2, passoX - Math.max(1.5, passoX * 0.18)) };
+  }
+
+  let ordemAtual = [];
+  function posicionar(ordem, semAnimar) {
+    ordemAtual = ordem.slice();
+    const { passoX, w } = larguras();
+    ordem.forEach((id, pos) => {
+      const el = elems[id];
+      if (semAnimar) el.style.transition = "none";
+      el.style.width = w + "px";
+      el.style.transform = `translateX(${pos * passoX}px)`;
+      if (semAnimar) { void el.offsetWidth; el.style.transition = ""; }
+    });
+  }
+  addEventListener("resize", () => posicionar(ordemAtual, true));
+
+  // Gera a sequência de eventos do quicksort híbrido (mesma lógica do Python)
+  function gerarEventos(corte) {
+    const rng = mulberry32(2026);
+    let a = valores.map((v, id) => ({ id, v }));
+    const ev = [];
+    const k = { chamadas: 0, part: 0, ins: 0 };
+    const ordem = () => a.map((e) => e.id);
+
+    function rec(lo, hi, nivel) {
+      k.chamadas++;
+      const n = hi - lo;
+      const ids = a.slice(lo, hi).map((e) => e.id);
+      if (n < corte) {
+        ev.push({ t: "faixa", lo, hi, modo: "ins", ids, k: { ...k },
+          msg: n === 0 ? `Pedaço vazio: <b>nada a fazer</b>.` :
+               `Pedaço de <b>${n}</b> ${n === 1 ? "elemento" : "elementos"} é menor que o corte (${corte}): vai para a <b>inserção</b>.` });
+        for (let i = lo + 1; i < hi; i++) {
+          let j = i;
+          ev.push({ t: "chave", id: a[i].id });
+          while (j > lo) {
+            k.ins++;
+            ev.push({ t: "comp", ids: [a[j - 1].id, a[j].id], k: { ...k } });
+            if (a[j - 1].v > a[j].v) {
+              [a[j - 1], a[j]] = [a[j], a[j - 1]];
+              ev.push({ t: "ordem", ordem: ordem() });
+              j--;
+            } else break;
+          }
+        }
+        ev.push({ t: "pronto", ids: a.slice(lo, hi).map((e) => e.id) });
+        return;
+      }
+      if (n <= 1) {
+        ev.push({ t: "pronto", ids, k: { ...k } });
+        return;
+      }
+      const pe = a[lo + Math.floor(rng() * n)];
+      const pivo = pe.v;
+      const pedaco = a.slice(lo, hi);
+      const menores = pedaco.filter((x) => x.v < pivo);
+      const iguais = pedaco.filter((x) => x.v === pivo);
+      const maiores = pedaco.filter((x) => x.v > pivo);
+      k.part += 3 * n;
+      ev.push({ t: "faixa", lo, hi, modo: "quick", ids, k: { ...k },
+        msg: `Pedaço de <b>${n}</b> elementos: o <b>quicksort</b> sorteia um pivô.` });
+      ev.push({ t: "pivo", id: pe.id, menores: menores.map((e) => e.id), maiores: maiores.map((e) => e.id),
+        iguais: iguais.map((e) => e.id),
+        msg: `Pivô <b>${pivo}</b>: ${menores.length} menores, ${iguais.length} ${iguais.length === 1 ? "igual" : "iguais"}, ${maiores.length} maiores.` });
+      a = a.slice(0, lo).concat(menores, iguais, maiores, a.slice(hi));
+      ev.push({ t: "ordem", ordem: ordem(), msg: `Separados em <b>menores · iguais · maiores</b>. Os iguais já estão no lugar.` });
+      ev.push({ t: "pronto", ids: iguais.map((e) => e.id) });
+      rec(lo, lo + menores.length, nivel + 1);
+      rec(lo + menores.length + iguais.length, hi, nivel + 1);
+    }
+    rec(0, a.length, 0);
+    ev.push({ t: "fim", k: { ...k } });
+    return ev;
+  }
+
+  let prontos = new Set();
+  let faixaIds = new Set();
+  let modoFaixa = null;
+
+  function limparClasses() {
+    elems.forEach((el, id) => {
+      el.className = "barra" + (prontos.has(id) ? " pronto" : (faixaIds.has(id) ? (modoFaixa === "ins" ? " ins" : " ativa") : ""));
+    });
+  }
+
+  function mostrarContadores(k) {
+    if (!k) return;
+    kCham.textContent = fmt(k.chamadas);
+    kPart.textContent = fmt(k.part);
+    kIns.textContent = fmt(k.ins);
+  }
+
+  function aplicar(e) {
+    const { passoX } = larguras();
+    if (e.msg) elNarr.innerHTML = e.msg;
+    if (e.k) mostrarContadores(e.k);
+    switch (e.t) {
+      case "faixa":
+        faixaIds = new Set(e.ids); modoFaixa = e.modo;
+        elFaixa.className = e.modo;
+        elFaixa.style.left = e.lo * passoX + "px";
+        elFaixa.style.width = Math.max(4, (e.hi - e.lo) * passoX - 2) + "px";
+        limparClasses();
+        break;
+      case "pivo":
+        limparClasses();
+        e.menores.forEach((id) => elems[id].classList.add("menor"));
+        e.maiores.forEach((id) => elems[id].classList.add("maior"));
+        e.iguais.forEach((id) => elems[id].classList.add("pivo"));
+        break;
+      case "ordem":
+        posicionar(e.ordem);
+        break;
+      case "chave":
+        limparClasses();
+        elems[e.id].classList.add("chave");
+        break;
+      case "comp":
+        limparClasses();
+        e.ids.forEach((id) => elems[id].classList.add("comp"));
+        break;
+      case "pronto":
+        e.ids.forEach((id) => prontos.add(id));
+        limparClasses();
+        break;
+      case "fim":
+        faixaIds = new Set(); prontos = new Set(elems.map((_, i) => i));
+        limparClasses();
+        elFaixa.style.width = "0px";
+        elNarr.innerHTML = `Ordenado com <b>${fmt(e.k.chamadas)}</b> chamadas recursivas. Tente outro corte e compare os contadores.`;
+        break;
+    }
+  }
+
+  function preparar() {
+    parar();
+    eventos = gerarEventos(+elCorte.value);
+    passo = 0; prontos = new Set(); faixaIds = new Set(); modoFaixa = null;
+    elFaixa.style.width = "0px";
+    mostrarContadores({ chamadas: 0, part: 0, ins: 0 });
+    posicionar(valores.map((_, i) => i), true);
+    limparClasses();
+  }
+
+  function duracao() { return VELOCIDADES[+elVel.value].ms; }
+
+  function tick() {
+    if (passo >= eventos.length) { parar(); btnPlay.textContent = "Ordenar de novo"; return; }
+    const e = eventos[passo++];
+    aplicar(e);
+    let d = duracao();
+    if (e.t === "ordem" && e.msg) d *= 3;
+    if (e.t === "pivo" || (e.t === "faixa" && e.modo === "quick")) d *= 2.2;
+    if (e.t === "faixa" && e.modo === "ins") d *= 1.6;
+    if (e.t === "pronto") d *= 0.4;
+    timer = setTimeout(tick, d);
+  }
+
+  function tocar() {
+    if (passo >= eventos.length) preparar();
+    tocando = true; btnPlay.textContent = "Pausar";
+    document.documentElement.style.setProperty("--dur", reduzMovimento ? "0ms" : Math.min(380, duracao() * 2.6) + "ms");
+    tick();
+  }
+  function parar() {
+    tocando = false; clearTimeout(timer);
+    btnPlay.textContent = passo > 0 && passo < eventos.length ? "Continuar" : "Ordenar";
+  }
+
+  btnPlay.addEventListener("click", () => (tocando ? parar() : tocar()));
+  btnPasso.addEventListener("click", () => {
+    parar();
+    if (passo >= eventos.length) preparar();
+    document.documentElement.style.setProperty("--dur", reduzMovimento ? "0ms" : "300ms");
+    // avança até um evento com efeito visível
+    while (passo < eventos.length) {
+      const e = eventos[passo++]; aplicar(e);
+      if (e.t !== "pronto") break;
+    }
+    btnPlay.textContent = passo < eventos.length ? "Continuar" : "Ordenar de novo";
+  });
+  btnEmb.addEventListener("click", () => { novaLista(); preparar(); elNarr.innerHTML = "Nova lista embaralhada. Aperte <b>Ordenar</b>."; });
+
+  function atualizarCorte() {
+    const c = +elCorte.value;
+    elCorteVal.textContent = c;
+    elCorteDica.textContent = c === 1
+      ? "Corte 1: só a lista vazia vai para a inserção. É o quicksort puro."
+      : c >= N ? "A lista inteira vai para a inserção: vira inserção pura, O(n²)."
+      : `Pedaços com menos de ${c} elementos vão para a inserção.`;
+  }
+  elCorte.addEventListener("input", () => { atualizarCorte(); preparar(); elNarr.innerHTML = "Corte alterado. Aperte <b>Ordenar</b>."; });
+  elVel.addEventListener("input", () => {
+    elVelVal.textContent = VELOCIDADES[+elVel.value].nome;
+    document.documentElement.style.setProperty("--dur", reduzMovimento ? "0ms" : Math.min(380, duracao() * 2.6) + "ms");
+  });
+
+  novaLista(); atualizarCorte(); preparar();
+
+  // =====================================================================
+  // 2) GRÁFICO (usado no laboratório e nos resultados do Python)
+  // =====================================================================
+  const NS = "http://www.w3.org/2000/svg";
+  const dica = document.getElementById("dica");
+  function el(tag, attrs, pai, texto) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (texto != null) e.textContent = texto;
+    if (pai) pai.appendChild(e);
+    return e;
+  }
+  function escalaBonita(max) {
+    const bruto = max / 5;
+    const p = Math.pow(10, Math.floor(Math.log10(bruto)));
+    const passo = [1, 2, 2.5, 5, 10].map((m) => m * p).find((s) => s >= bruto);
+    return { passo, topo: Math.ceil(max / passo) * passo };
+  }
+
+  function desenhar(svg, { cortes, valores: vals, puro, W, H, unidade = "ms", casas = 1 }) {
+    svg.innerHTML = "";
+    const m = { e: 56, d: 24, t: 24, b: 54 };
+    const iw = W - m.e - m.d, ih = H - m.t - m.b;
+    const definidos = vals.filter((v) => v != null);
+    const maxV = Math.max(puro || 0, ...definidos, 1) * 1.12;
+    const { passo, topo } = escalaBonita(maxV);
+    const x = (i) => m.e + (cortes.length === 1 ? iw / 2 : (i / (cortes.length - 1)) * iw);
+    const y = (v) => m.t + ih - (v / topo) * ih;
+
+    for (let v = 0; v <= topo + 1e-9; v += passo) {
+      el("line", { x1: m.e, x2: W - m.d, y1: y(v), y2: y(v), class: v === 0 ? "g-eixo" : "g-grade" }, svg);
+      el("text", { x: m.e - 10, y: y(v) + 4, "text-anchor": "end", class: "g-tick" }, svg, fmt(v, passo < 1 ? 1 : 0));
+    }
+    cortes.forEach((c, i) => el("text", { x: x(i), y: H - m.b + 24, "text-anchor": "middle", class: "g-tick" }, svg, c));
+    el("text", { x: m.e + iw / 2, y: H - 6, "text-anchor": "middle", class: "g-titulo-eixo" }, svg, "corte");
+    el("text", { x: 14, y: m.t + ih / 2, transform: `rotate(-90 14 ${m.t + ih / 2})`, "text-anchor": "middle", class: "g-titulo-eixo" }, svg, `tempo (${unidade})`);
+
+    if (puro != null) {
+      el("line", { x1: m.e, x2: W - m.d, y1: y(puro), y2: y(puro), class: "g-puro" }, svg);
+      el("text", { x: m.e + iw * 0.42, y: y(puro) - 10, "text-anchor": "middle", class: "g-puro-rot" }, svg, `quicksort puro · ${fmt(puro, casas)} ${unidade}`);
+    }
+
+    const pts = vals.map((v, i) => (v == null ? null : [x(i), y(v), v, i])).filter(Boolean);
+    if (pts.length > 1) el("polyline", { points: pts.map((p) => p[0] + "," + p[1]).join(" "), class: "g-linha" }, svg);
+
+    let melhor = null;
+    if (puro != null && pts.length === cortes.length) melhor = pts.reduce((a, b) => (b[2] < a[2] ? b : a));
+    pts.forEach((p) => {
+      const ehMelhor = melhor && p === melhor;
+      el("circle", { cx: p[0], cy: p[1], r: ehMelhor ? 8 : 5.5, class: ehMelhor ? "g-melhor" : "g-ponto" }, svg);
+    });
+    if (melhor) {
+      const ganho = (1 - melhor[2] / puro) * 100;
+      const anc = melhor[0] > W - 140 ? "end" : melhor[0] < m.e + 120 ? "start" : "middle";
+      el("text", { x: melhor[0], y: melhor[1] + 30, "text-anchor": anc, class: "g-melhor-rot" }, svg,
+        `melhor: corte ${cortes[melhor[3]]} (${ganho >= 0 ? "−" : "+"}${fmt(Math.abs(ganho), 1)}%)`);
+    }
+    // áreas de hover
+    pts.forEach((p) => {
+      const w = cortes.length > 1 ? iw / (cortes.length - 1) : iw;
+      const r = el("rect", { x: p[0] - w / 2, y: m.t, width: w, height: ih, class: "g-hit", tabindex: 0,
+        "aria-label": `corte ${cortes[p[3]]}: ${fmt(p[2], casas)} ${unidade}` }, svg);
+      const mostrar = (ev) => {
+        const c = cortes[p[3]];
+        let html = `<b>corte ${c}</b> · ${fmt(p[2], casas)} ${unidade}`;
+        if (puro) { const g = (1 - p[2] / puro) * 100; html += `<br>${g >= 0 ? "−" : "+"}${fmt(Math.abs(g), 1)}% vs. puro`; }
+        dica.innerHTML = html; dica.style.opacity = 1;
+        const bb = r.getBoundingClientRect();
+        const cx = ev && ev.clientX != null ? ev.clientX : bb.left + bb.width / 2;
+        const cy = ev && ev.clientY != null ? ev.clientY : bb.top + 40;
+        dica.style.left = Math.min(innerWidth - 170, cx + 14) + "px";
+        dica.style.top = cy - 50 + "px";
+      };
+      r.addEventListener("mousemove", mostrar);
+      r.addEventListener("focus", () => mostrar());
+      r.addEventListener("mouseleave", () => (dica.style.opacity = 0));
+      r.addEventListener("blur", () => (dica.style.opacity = 0));
+    });
+  }
+
+  // ---------- resultados do Python ----------
+  const PY = { puro: 44.19, "1": 45.03, "5": 41.23, "10": 37.06, "16": 35.05, "20": 35.9, "32": 36.32, "50": 38.88, "100": 46.32, "200": 69.79 };
+  const CORTES = [1, 5, 10, 16, 20, 32, 50, 100, 200];
+  desenhar(document.getElementById("g-py"), { cortes: CORTES, valores: CORTES.map((c) => PY[c]), puro: PY.puro, W: 1100, H: 400 });
+
+  const tb = document.getElementById("tabela");
+  const linhas = [["Quicksort puro", PY.puro]].concat(CORTES.map((c) => [`corte = ${c}`, PY[c], c]));
+  const melhorPy = Math.min(...CORTES.map((c) => PY[c]));
+  linhas.forEach(([nome, v, c]) => {
+    const tr = document.createElement("tr");
+    if (v === melhorPy) tr.className = "destaque";
+    const g = (1 - v / PY.puro) * 100;
+    const ac = PY.puro / v;
+    tr.innerHTML = `<td>${nome}</td><td>${fmt(v, 2)}</td>` +
+      (c == null ? `<td>—</td><td>1,00×</td>` :
+      `<td class="${g >= 0 ? "pos" : "neg"}">${g >= 0 ? "+" : "−"}${fmt(Math.abs(g), 1)}%</td><td>${fmt(ac, 2)}×</td>`);
+    tb.appendChild(tr);
+  });
+
+  // =====================================================================
+  // 3) LABORATÓRIO: benchmark no navegador
+  // =====================================================================
+  function insercao(v) {
+    const a = v.slice();
+    for (let i = 1; i < a.length; i++) {
+      const chave = a[i]; let j = i - 1;
+      while (j >= 0 && a[j] > chave) { a[j + 1] = a[j]; j--; }
+      a[j + 1] = chave;
+    }
+    return a;
+  }
+  function qsPuro(v, rnd) {
+    if (v.length <= 1) return v.slice();
+    const p = v[Math.floor(rnd() * v.length)];
+    const me = [], ig = [], ma = [];
+    for (const x of v) { if (x < p) me.push(x); } // três passadas, como no Python
+    for (const x of v) { if (x === p) ig.push(x); }
+    for (const x of v) { if (x > p) ma.push(x); }
+    return qsPuro(me, rnd).concat(ig, qsPuro(ma, rnd));
+  }
+  function qsHibrido(v, corte, rnd) {
+    if (v.length < corte) return insercao(v);
+    if (v.length <= 1) return v.slice();
+    const p = v[Math.floor(rnd() * v.length)];
+    const me = [], ig = [], ma = [];
+    for (const x of v) { if (x < p) me.push(x); }
+    for (const x of v) { if (x === p) ig.push(x); }
+    for (const x of v) { if (x > p) ma.push(x); }
+    return qsHibrido(me, corte, rnd).concat(ig, qsHibrido(ma, corte, rnd));
+  }
+  const ordenado = (a) => { for (let i = 1; i < a.length; i++) if (a[i - 1] > a[i]) return false; return true; };
+  const mediana = (a) => { const s = a.slice().sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+
+  const gLab = document.getElementById("g-lab");
+  const btnMedir = document.getElementById("btn-medir");
+  const elEstado = document.getElementById("estado");
+  const prog = document.getElementById("prog");
+  let rodadas = 7;
+  document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".seg button").forEach((o) => o.setAttribute("aria-pressed", o === b));
+    rodadas = +b.dataset.r;
+  }));
+  const CORTES_LAB = [1, 5, 10, 16, 20, 32, 50, 100, 200, 500, 1000, 2000];
+  desenhar(gLab, { cortes: CORTES_LAB, valores: CORTES_LAB.map(() => null), puro: null, W: 760, H: 380 });
+
+  const pausa = () => new Promise((r) => setTimeout(r, 0));
+
+  btnMedir.addEventListener("click", async () => {
+    btnMedir.disabled = true;
+    const n = 20000;
+    const configs = [["puro", null]].concat(CORTES_LAB.map((c) => [String(c), c]));
+    const tempos = Object.fromEntries(configs.map(([k]) => [k, []]));
+    const total = rodadas * configs.length;
+    let feitos = 0;
+    elEstado.innerHTML = "Aquecendo o compilador do JavaScript…";
+    // aquecimento (o JIT otimiza as funções nas primeiras execuções)
+    const rngA = mulberry32(1);
+    const aquec = Array.from({ length: n }, () => Math.floor(rngA() * 1e9));
+    for (let i = 0; i < 3; i++) { qsPuro(aquec, mulberry32(i)); for (const c of CORTES_LAB) qsHibrido(aquec, c, mulberry32(i)); await pausa(); }
+
+    const rng = mulberry32(2026);
+    for (let r = 0; r < rodadas; r++) {
+      const dados = Array.from({ length: n }, () => Math.floor(rng() * 1e9));
+      const ordem = configs.slice().sort(() => rng() - 0.5);
+      for (const [k, c] of ordem) {
+        const rnd = mulberry32(1000 + r);
+        const t0 = performance.now();
+        const res = c == null ? qsPuro(dados, rnd) : qsHibrido(dados, c, rnd);
+        const t1 = performance.now();
+        if (!ordenado(res) || res.length !== n) { elEstado.textContent = "Erro: resultado fora de ordem."; btnMedir.disabled = false; return; }
+        tempos[k].push(t1 - t0);
+        feitos++;
+        prog.style.width = (100 * feitos) / total + "%";
+        await pausa();
+      }
+      const parcial = CORTES_LAB.map((c) => mediana(tempos[c]));
+      desenhar(gLab, { cortes: CORTES_LAB, valores: parcial, puro: mediana(tempos.puro), W: 760, H: 380, casas: 2 });
+      elEstado.innerHTML = `Rodada <b>${r + 1}</b> de ${rodadas}…`;
+    }
+    const meds = CORTES_LAB.map((c) => mediana(tempos[c]));
+    const puro = mediana(tempos.puro);
+    const iMelhor = meds.indexOf(Math.min(...meds));
+    const ganho = (1 - meds[iMelhor] / puro) * 100;
+    elEstado.innerHTML = `No seu navegador o melhor corte foi <b>${CORTES_LAB[iMelhor]}</b>: ${fmt(meds[iMelhor], 2)} ms contra ${fmt(puro, 2)} ms do puro (${ganho >= 0 ? "−" : "+"}${fmt(Math.abs(ganho), 1)}%). Rode de novo: a mediana muda um pouco a cada medição.`;
+    btnMedir.disabled = false;
+    btnMedir.textContent = "Medir de novo";
+  });
+})();
+</script>
+</body>
+</html>
